@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-
+import galaxyVertexShader from './shaders/galaxy/vertex.glsl'
+import galaxyFragemntShader from './shaders/galaxy/fragment.glsl'
 /**
  * Base
  */
@@ -32,10 +33,8 @@ let geometry = null
 let material = null
 let points = null
 
-const generateGalaxy = () =>
-{
-    if(points !== null)
-    {
+const generateGalaxy = () => {
+    if (points !== null) {
         geometry.dispose()
         material.dispose()
         scene.remove(points)
@@ -48,12 +47,12 @@ const generateGalaxy = () =>
 
     const positions = new Float32Array(parameters.count * 3)
     const colors = new Float32Array(parameters.count * 3)
-
+    const scales= new Float32Array(parameters.count * 1)
+    
     const insideColor = new THREE.Color(parameters.insideColor)
     const outsideColor = new THREE.Color(parameters.outsideColor)
 
-    for(let i = 0; i < parameters.count; i++)
-    {
+    for (let i = 0; i < parameters.count; i++) {
         const i3 = i * 3
 
         // Position
@@ -65,7 +64,7 @@ const generateGalaxy = () =>
         const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * parameters.randomness * radius
         const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : - 1) * parameters.randomness * radius
 
-        positions[i3    ] = Math.cos(branchAngle) * radius + randomX
+        positions[i3] = Math.cos(branchAngle) * radius + randomX
         positions[i3 + 1] = randomY
         positions[i3 + 2] = Math.sin(branchAngle) * radius + randomZ
 
@@ -73,14 +72,16 @@ const generateGalaxy = () =>
         const mixedColor = insideColor.clone()
         mixedColor.lerp(outsideColor, radius / parameters.radius)
 
-        colors[i3    ] = mixedColor.r
+        colors[i3] = mixedColor.r
         colors[i3 + 1] = mixedColor.g
         colors[i3 + 2] = mixedColor.b
+
+        scales[i] = Math.random()
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-
+    geometry.setAttribute('aScale', new THREE.BufferAttribute(colors,1))
     /**
      * Material
      */
@@ -88,24 +89,12 @@ const generateGalaxy = () =>
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         vertexColors: true,
-        vertexShader:`
-        void main(){
-            //Position
-            vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-            vec4 viewPosition = viewMatrix * modelPosition;
-            vec4 projectedPosition = projectionMatrix * viewPosition;
-            gl_Position = projectedPosition;
-
-            //Size
-            gl_PointSize = 2.0;
+        vertexShader: galaxyVertexShader,
+        fragmentShader: galaxyFragemntShader,
+        uniforms:{
+            uTime:{value: 0},
+            uSize:{value: 20 * renderer.getPixelRatio() }
         }
-        `,
-        fragmentShader:`
-        void main(){
-            gl_FragColor = vec4(1.0,1.0,1.0,1.0);
-            #include <colorspace_fragment>
-        }
-        `
     })
 
     /**
@@ -115,7 +104,7 @@ const generateGalaxy = () =>
     scene.add(points)
 }
 
-generateGalaxy()
+
 
 gui.add(parameters, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy)
 gui.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
@@ -133,8 +122,7 @@ const sizes = {
     height: window.innerHeight
 }
 
-window.addEventListener('resize', () =>
-{
+window.addEventListener('resize', () => {
     // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
@@ -176,9 +164,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  */
 const clock = new THREE.Clock()
 
-const tick = () =>
-{
+const tick = () => {
     const elapsedTime = clock.getElapsedTime()
+
+    //Update material
+    material.uniforms.uTime.value = elapsedTime
 
     // Update controls
     controls.update()
@@ -189,5 +179,5 @@ const tick = () =>
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 }
-
+generateGalaxy()
 tick()
