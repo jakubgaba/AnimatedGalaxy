@@ -19,15 +19,15 @@ const scene = new THREE.Scene()
  * Galaxy
  */
 const parameters = {}
-parameters.count = 200000
+parameters.count = 459200
 parameters.size = 0.005
-parameters.radius = 5
-parameters.branches = 3
+parameters.radius = 10
+parameters.branches = 7
 parameters.spin = 1
-parameters.randomness = 0.5
-parameters.randomnessPower = 3
-parameters.insideColor = '#ff6030'
-parameters.outsideColor = '#1b3984'
+parameters.randomness = 0.722
+parameters.randomnessPower = 4.58
+parameters.insideColor = '#ffffff'
+parameters.outsideColor = '#002aff'
 
 let geometry = null
 let material = null
